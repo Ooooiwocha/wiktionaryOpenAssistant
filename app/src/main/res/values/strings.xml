@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Wiktionary Open Assistant</string>
+    <string name="service_description">Opens Wiktionary</string>
+    <string name="CANNOT_FIND_WORD">No such word could be found.</string>
+    <string name="apply">apply</string>
+    <string-array name="setting_items">
+        <item>Language Preference</item>
+    </string-array>
+</resources>
