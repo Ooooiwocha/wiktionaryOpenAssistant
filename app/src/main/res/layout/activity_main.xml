@@ -1,14 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootScroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:ads="http://schemas.android.com/tools"
-    android:orientation="vertical">
-    <FrameLayout
-        android:id="@+id/fragment_container"
+    android:fillViewport="true"
+    android:background="@color/page_background">
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Wiktionary"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="@color/ink" />
 
-</LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="単語を選択して、世界の辞書へ。"
+            android:textSize="15sp"
+            android:textColor="@color/subtle_ink" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:background="@drawable/card_surface"
+            android:padding="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/SectionHeading"
+                android:text="すぐに検索" />
+
+            <TextView
+                style="@style/ExplanationText"
+                android:layout_marginTop="4dp"
+                android:text="単語を入力して動作を試せます。普段は他のアプリで文字を選択し「Wiktionary」を選んでください。" />
+
+            <EditText
+                android:id="@+id/exampleTerm"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="52dp"
+                android:layout_marginTop="10dp"
+                android:hint="例: liberté / apple / слово"
+                android:inputType="text"
+                android:imeOptions="actionSearch"
+                android:maxLines="1"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/tryButton"
+                style="@style/PrimaryButton"
+                android:text="辞書を開く" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_surface"
+            android:padding="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/SectionHeading"
+                android:text="検索方法" />
+            <RadioGroup
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp">
+                <RadioButton
+                    android:id="@+id/modeAutomatic"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="自動で見つける"
+                    android:textSize="16sp" />
+                <RadioButton
+                    android:id="@+id/modeChoose"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="毎回、言語を選ぶ"
+                    android:textSize="16sp" />
+            </RadioGroup>
+            <TextView
+                style="@style/ExplanationText"
+                android:layout_marginTop="6dp"
+                android:text="「自動」は上から順番に語の存在を調べます。「毎回選ぶ」はAPI確認を省略して希望の言語版を直接開きます。" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_surface"
+            android:padding="16dp"
+            android:orientation="vertical">
+
+            <TextView style="@style/SectionHeading" android:text="言語と優先順位" />
+            <TextView
+                style="@style/ExplanationText"
+                android:layout_marginTop="4dp"
+                android:text="チェックで検索対象を切り替え、矢印で順番を変更できます。上の言語が優先です。変更は自動保存されます。" />
+            <LinearLayout
+                android:id="@+id/languageContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical" />
+            <Button
+                android:id="@+id/addLanguageButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:layout_marginTop="12dp"
+                android:text="＋ 言語を追加"
+                android:textAllCaps="false" />
+            <Button
+                android:id="@+id/resetButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="初期状態に戻す"
+                android:textAllCaps="false" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/ExplanationText"
+            android:layout_marginTop="18dp"
+            android:layout_marginBottom="24dp"
+            android:gravity="center"
+            android:text="単語の検索と表示にはWiktionaryを利用します。" />
+    </LinearLayout>
+</ScrollView>

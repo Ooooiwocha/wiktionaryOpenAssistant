@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical">
+
+    <CheckBox
+        android:id="@+id/languageEnabled"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minHeight="48dp"
+        android:textColor="@color/ink"
+        android:textSize="14sp" />
+
+    <ImageButton
+        android:id="@+id/moveUp"
+        style="@style/LanguageIconButton"
+        android:src="@drawable/ic_arrow_up"
+        android:contentDescription="上へ" />
+    <ImageButton
+        android:id="@+id/moveDown"
+        style="@style/LanguageIconButton"
+        android:src="@drawable/ic_arrow_down"
+        android:contentDescription="下へ" />
+    <ImageButton
+        android:id="@+id/removeLanguage"
+        style="@style/LanguageIconButton"
+        android:src="@drawable/ic_close"
+        android:contentDescription="削除" />
+</LinearLayout>

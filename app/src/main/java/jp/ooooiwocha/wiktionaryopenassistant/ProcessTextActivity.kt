@@ -1,89 +1,121 @@
 package jp.ooooiwocha.wiktionaryopenassistant
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.widget.Toast
-import androidx.annotation.RequiresApi
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import kotlinx.coroutines.*
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
 
-class ProcessTextActivity : android.app.Activity() {
-    fun setInitialValues() {
-        val sharedPreferences = getSharedPreferences("lang_pref", Context.MODE_PRIVATE)
-        // SharedPreferencesの現在の値をチェック
-        if (!sharedPreferences.contains("key")) {
-            // Editorを取得して値を設定
-            val editor = sharedPreferences.edit()
-            resources.openRawResource(R.raw.lang_pref).bufferedReader().forEachLine{
-                editor.putString(sharedPreferences.getAll().size.toString(), it)
-                editor.apply()
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.ProgressBar
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+
+/** Android text-selection action; also accepts plain text shared from other apps. */
+class ProcessTextActivity : AppCompatActivity() {
+    private var lookupJob: Job? = null
+    private lateinit var selectedText: String
+    private lateinit var languages: List<String>
+    private lateinit var status: TextView
+    private lateinit var spinner: ProgressBar
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        selectedText = when (intent.action) {
+            Intent.ACTION_PROCESS_TEXT -> intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT)
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+            else -> null
+        }?.trim().orEmpty()
+
+        if (selectedText.isEmpty()) {
+            finish()
+            return
+        }
+        languages = LanguageSettings.load(this).filter { it.enabled }.map { it.code }
+        setContentView(R.layout.activity_lookup)
+        status = findViewById(R.id.lookupStatus)
+        spinner = findViewById(R.id.lookupProgress)
+        findViewById<TextView>(R.id.lookupTerm).text = selectedText.take(140)
+        findViewById<Button>(R.id.chooseLanguageButton).setOnClickListener {
+            lookupJob?.cancel()
+            spinner.visibility = View.GONE
+            chooseLanguage()
+        }
+        findViewById<Button>(R.id.cancelButton).setOnClickListener { finish() }
+
+        if (LanguageSettings.askBeforeOpening(this)) {
+            spinner.visibility = View.GONE
+            chooseLanguage()
+        } else if (languages.isEmpty()) {
+            spinner.visibility = View.GONE
+            status.text = "有効な言語がありません"
+            AlertDialog.Builder(this)
+                .setTitle("言語を選択してください")
+                .setMessage("アプリの設定から検索する言語を有効にしてください。")
+                .setPositiveButton("設定を開く") { _, _ ->
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish()
+                }
+                .setNegativeButton("閉じる") { _, _ -> finish() }
+                .setOnCancelListener { finish() }
+                .show()
+        } else {
+            findFirstLanguage()
+        }
+    }
+
+    private fun findFirstLanguage() {
+        status.text = "辞書に項目があるか確認しています…"
+        spinner.visibility = View.VISIBLE
+        lookupJob = lifecycleScope.launch {
+            val code = WiktionaryLookup.firstExisting(selectedText, languages) { done, total ->
+                status.text = "検索中  $done / $total 言語を確認"
+            }
+            spinner.visibility = View.GONE
+            if (code != null) {
+                openUrl(WiktionaryLookup.articleUrl(code, selectedText))
+            } else {
+                Toast.makeText(this@ProcessTextActivity, "見つからなかったため検索結果を開きます", Toast.LENGTH_LONG).show()
+                openUrl(WiktionaryLookup.searchUrl(selectedText))
             }
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setInitialValues()
-        val sharedPreferences = getSharedPreferences("lang_pref", Context.MODE_PRIVATE)
-        val myMap: Map<String, *> = sharedPreferences.getAll()
-        val size = myMap.size
-        for(i in 0 until size){
-            langCodeList.add(myMap.get(i.toString()).toString())
+    private fun chooseLanguage() {
+        if (languages.isEmpty()) {
+            status.text = "設定で言語を有効にしてください"
+            return
         }
-
-        if (Intent.ACTION_PROCESS_TEXT == intent.action && intent.type == "text/plain") {
-            // コルーチンを開始します
-            GlobalScope.launch(Dispatchers.Main) {
-                val selectedText = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT) ?: ""
-                val lang: String? = findLanguage(selectedText)
-
-                if (lang != null) {
-                    // Wiktionaryで検索するURLを作成します
-                    val url = "https://$lang.wiktionary.org/wiki/${Uri.encode(selectedText)}"
-                    // 既定のブラウザでURLを開きます
-                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    startActivity(browserIntent)
-                }else{
-                    val url = "https://en.m.wiktionary.org/w/index.php?search=${Uri.encode(selectedText)}"
-                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    startActivity(browserIntent)
-                    Toast.makeText(applicationContext, R.string.CANNOT_FIND_WORD, Toast.LENGTH_SHORT).show()
-                }
-                // アクティビティを終了します
-                finish()
+        status.text = "検索する言語を選択してください"
+        val entries = languages.map { "${LanguageSettings.name(it)}  ($it)" }
+        AlertDialog.Builder(this)
+            .setTitle("どの言語版で調べますか？")
+            .setItems(entries.toTypedArray()) { _, index ->
+                openUrl(WiktionaryLookup.articleUrl(languages[index], selectedText))
             }
-        } else {
-            // アクティビティを終了します
+            .setNeutralButton("英語版で検索") { _, _ ->
+                openUrl(WiktionaryLookup.searchUrl(selectedText))
+            }
+            .setNegativeButton("キャンセル") { _, _ -> finish() }
+            .setOnCancelListener { finish() }
+            .show()
+    }
+
+    private fun openUrl(uri: android.net.Uri) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "ブラウザーが見つかりません", Toast.LENGTH_LONG).show()
+        } finally {
             finish()
         }
     }
 
-    private suspend fun findLanguage(selectedText: String): String? {
-        val client = OkHttpClient()
-        langCodeList.forEach { lang ->
-            val request = Request.Builder()
-                .url("https://$lang.wiktionary.org/w/api.php?action=query&titles=$selectedText&format=json")
-                .build()
-            val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
-            val jsonData = response.body?.string()
-            jsonData?.let {
-                val jsonElement = Json.parseToJsonElement(it)
-                val test = jsonElement.jsonObject["query"]?.jsonObject?.get("pages")?.jsonObject
-                if (test?.containsKey("-1") == false) {
-                    return lang
-                }
-            }
-        }
-        return null
-    }
-
-    companion object {
-        var langCodeList: ArrayList<String> = ArrayList<String>(0)
+    override fun onDestroy() {
+        lookupJob?.cancel()
+        super.onDestroy()
     }
 }
